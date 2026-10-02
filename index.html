@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Atmos" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="shortcut icon" href="favicon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Atmos Weather</title>
+</head>
+<body>
+  <div id="app">
+    <div class="background">
+      <div class="orb orb-one"></div>
+      <div class="orb orb-two"></div>
+      <div class="scene-layer" id="sceneLayer" aria-hidden="true">
+        <div class="scene-sun"></div>
+        <div class="scene-cloud cloud-a"></div>
+        <div class="scene-cloud cloud-b"></div>
+        <div class="scene-haze"></div>
+        <div class="scene-lightning"></div>
+        <div class="scene-plane">✈</div>
+        <div class="scene-aurora"></div>
+        <div class="scene-leaves"><span>🍂</span><span>🍃</span><span>🍂</span><span>🍃</span></div>
+        <div class="scene-rainbow"></div>
+        <div class="scene-palm">🌴</div>
+        <div class="scene-runway"></div>
+        <div class="scene-desert">
+          <div class="dune dune-back"></div>
+          <div class="dune dune-front"></div>
+          <div class="cactus">🌵</div>
+        </div>
+        <div class="scene-beach">
+          <div class="ocean-glow"></div>
+          <div class="wave wave-one"></div>
+          <div class="wave wave-two"></div>
+          <div class="wave wave-three"></div>
+          <div class="sand"></div>
+        </div>
+        <div class="wet-glass" id="wetGlass"></div>
+      </div>
+      <div class="weather-particles" id="weatherParticles"></div>
+    </div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <button class="glass-button icon-button" id="placesButton" aria-label="Places">☰</button>
+        <button class="glass-pill location-pill" id="locationPill">
+          <span id="locationName">Loading…</span>
+          <small class="location-city" id="locationCity">Finding your location</small>
+          <small class="location-updated" id="updatedAt"></small><span class="test-mode-badge hidden" id="testModeBadge">TEST WORLD</span>
+        </button>
+        <button class="glass-button icon-button" id="settingsButton" aria-label="Settings">⚙︎</button>
+      </header>
+
+      <section class="hero">
+        <div class="hero-icon" id="heroIcon">☀️</div>
+        <div class="temperature" id="temperature">--°</div>
+        <div class="secondary-temperature" id="secondaryTemperature">--°C</div>
+        <div class="condition" id="condition">Loading weather</div>
+        <div class="feels" id="feelsLike">Feels like --°</div>
+        <div class="high-low" id="highLow">H: --° &nbsp; L: --°</div>
+      </section>
+
+      <section class="glass-card beach-status hidden" id="beachStatus">
+        <div class="beach-score-ring">
+          <strong id="beachScore">--</strong>
+          <small>BEACH<br>SCORE</small>
+        </div>
+        <div class="beach-status-copy">
+          <div class="card-heading"><span>≈ Water report</span><span id="beachVerdict">Checking…</span></div>
+          <p id="beachSummary">Loading marine conditions.</p>
+          <div class="beach-metrics">
+            <span><small>Water</small><strong id="waterTemp">--</strong></span>
+            <span><small>Waves</small><strong id="waveHeight">--</strong></span>
+            <span><small>Period</small><strong id="wavePeriod">--</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <button class="glass-card beach-community-card hidden" id="beachCommunityCard" type="button">
+        <div>
+          <div class="card-heading"><span>★ Beach community</span><span>↗</span></div>
+          <p id="beachCommunityPreview">Rate cleanliness, water, crowds, safety, amenities, and share a beach report.</p>
+        </div>
+      </button>
+
+      <button class="glass-card ai-card" id="aiOverviewCard">
+        <div class="card-heading">
+          <span>✦ AI overview</span>
+          <span>↗</span>
+        </div>
+        <p id="aiSummary">Your quick forecast will appear here.</p>
+        <div class="card-link">Tap for what to wear →</div>
+      </button>
+
+      <section class="glass-card">
+        <div class="section-title">◷ Next 24 hours</div>
+        <div class="hourly-scroll" id="hourlyForecast"></div>
+      </section>
+
+      <section class="glass-card">
+        <div class="section-title">▦ 10-day forecast</div>
+        <div id="dailyForecast"></div>
+      </section>
+
+      <section class="metrics-grid" id="metricsGrid"></section>
+
+
+      <section class="glass-card nearby-section">
+        <div class="nearby-header">
+          <div>
+            <div class="section-title">Nearby places</div>
+            <p>Airports for travel weather. Beaches include wind, waves, water temperature, and a beach-day score.</p>
+          </div>
+          <button class="mini-refresh" id="refreshNearbyButton" aria-label="Refresh nearby places">↻</button>
+        </div>
+
+        <div class="nearby-group">
+          <div class="nearby-label"><span>✈</span> Nearby airports</div>
+          <div class="nearby-scroll" id="nearbyAirports">
+            <div class="nearby-loading">Finding nearby airports…</div>
+          </div>
+        </div>
+
+        <div class="nearby-group">
+          <div class="nearby-label"><span>≈</span> Nearby beaches</div>
+          <div class="nearby-scroll" id="nearbyBeaches">
+            <div class="nearby-loading">Finding nearby beaches…</div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Weather intelligence powered by Atmos · Forecast data by Open-Meteo
+      </footer>
+    </main>
+
+    <div class="sheet-backdrop hidden" id="sheetBackdrop"></div>
+
+    <section class="bottom-sheet hidden" id="placesSheet" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>Places</h2>
+        <button class="close-button" data-close-sheet>Done</button>
+      </div>
+
+      <button class="sheet-row prominent" id="currentLocationButton">
+        <span>⌖</span>
+        <div><strong>Use Current Location</strong><small>Refresh from your phone</small></div>
+      </button>
+
+      <div class="search-map-row">
+        <div class="search-wrap">
+          <input id="placeSearchInput" type="search" placeholder="Search city or airport" />
+        </div>
+        <button class="map-open-button" id="openMapButton" type="button" aria-label="Open weather map">⌖</button>
+      </div>
+      <div id="searchResults"></div>
+
+      <h3>Saved</h3>
+      <div id="savedPlaces"></div>
+    </section>
+
+    <section class="bottom-sheet hidden" id="settingsSheet" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>Settings</h2>
+        <button class="close-button" data-close-sheet>Done</button>
+      </div>
+
+      
+      <div class="settings-card theme-settings-card">
+        <div class="settings-section-title">Appearance</div>
+
+        <div class="theme-choice-grid" id="themeChoiceGrid">
+          <button class="theme-choice active" data-theme="atmos">
+            <span class="theme-preview preview-atmos"></span>
+            <strong>Atmos</strong>
+            <small>Colorful living weather</small>
+          </button>
+          <button class="theme-choice" data-theme="black-accent">
+            <span class="theme-preview preview-accent"></span>
+            <strong>Black + Accent</strong>
+            <small>Dark with one signature color</small>
+          </button>
+          <button class="theme-choice" data-theme="mono">
+            <span class="theme-preview preview-mono"></span>
+            <strong>Black & White</strong>
+            <small>Pure monochrome luxury</small>
+          </button>
+        </div>
+
+        <div class="accent-control" id="accentControl">
+          <div>
+            <strong>Accent color</strong>
+            <small>Used across buttons, weather effects, and highlights.</small>
+          </div>
+          <div class="accent-swatches" id="accentSwatches">
+            <button aria-label="Blue accent" data-accent="#5AA8FF" style="--swatch:#5AA8FF"></button>
+            <button aria-label="Purple accent" data-accent="#9B7BFF" style="--swatch:#9B7BFF"></button>
+            <button aria-label="Green accent" data-accent="#62D99D" style="--swatch:#62D99D"></button>
+            <button aria-label="Orange accent" data-accent="#FF9B52" style="--swatch:#FF9B52"></button>
+            <button aria-label="Pink accent" data-accent="#FF70AE" style="--swatch:#FF70AE"></button>
+          </div>
+        </div>
+      </div>
+
+<button class="settings-card account-button" id="accountButton">
+        <div class="account-row">
+          <div class="avatar" id="accountAvatar">A</div>
+          <div>
+            <strong id="accountName">Log in or sign up</strong>
+            <small id="accountSubtitle">Atmos ID · Sync your places, reviews and preferences</small>
+          </div>
+          <span class="account-chevron">›</span>
+        </div>
+      </button>
+
+      <button class="settings-card account-button developer-entry" id="developerAccountButton">
+        <div class="account-row">
+          <div class="avatar">DEV</div>
+          <div><strong>Developer options</strong><small>Password required</small></div>
+          <span class="account-chevron">›</span>
+        </div>
+      </button>
+
+      <div class="developer-lab hidden" id="developerLab">
+        <div class="lab-heading">
+          <div>
+            <strong>Weather Lab</strong>
+            <small>Preview every Atmos world instantly.</small>
+          </div>
+          <span class="dev-badge">DEV</span>
+        </div>
+
+        <div class="preset-grid" id="weatherPresetGrid"></div>
+
+        <div class="custom-preset-card">
+          <strong>Create a custom test city</strong>
+          <label>
+            Name
+            <input id="customPresetName" type="text" placeholder="Golden Hour Heat" maxlength="28" />
+          </label>
+          <div class="custom-preset-row">
+            <label>
+              Weather
+              <select id="customPresetType">
+                <option value="dry-sun">Dry sun</option>
+                <option value="humid-sun">Wet / humid sun</option>
+                <option value="sunshower">Sunny rain</option>
+                <option value="rain">Rain</option>
+                <option value="storm">Thunderstorm</option>
+                <option value="fog">Fog</option>
+                <option value="snow">Snow</option>
+                <option value="cloudy">Cloudy</option>
+                <option value="night-clear">Clear night</option>
+              </select>
+            </label>
+            <label>
+              Temperature °F
+              <input id="customPresetTemp" type="number" value="82" min="-20" max="125" />
+            </label>
+          </div>
+          <button class="lab-save-button" id="saveCustomPreset">Save test city</button>
+        </div>
+
+        <div class="lab-note">Test cities stay only on this device. Tap any preset to launch it, then save it with the bookmark button.</div>
+      </div>
+
+      <h3>Units</h3>
+      <div class="settings-card">
+        <label>Temperature
+          <select id="temperatureUnit">
+            <option value="fahrenheit">Fahrenheit</option>
+            <option value="celsius">Celsius</option>
+          </select>
+        </label>
+        <label>Wind
+          <select id="speedUnit">
+            <option value="mph">mph</option>
+            <option value="kmh">km/h</option>
+          </select>
+        </label>
+        <label>Measurements
+          <select id="measurementSystem">
+            <option value="imperial">Imperial</option>
+            <option value="metric">Metric</option>
+          </select>
+        </label>
+      </div>
+
+      <h3>Preferences</h3>
+      <div class="settings-card">
+        <label class="toggle-row">Personalized outfits <input type="checkbox" id="outfitToggle" checked /></label>
+        <label class="toggle-row">Weather alerts <input type="checkbox" id="alertToggle" checked /></label>
+      </div>
+    </section>
+
+    <section class="full-screen-panel hidden" id="accountPanel">
+      <div class="panel-header"><button class="glass-button icon-button" id="closeAccount">←</button><div>Atmos account</div><div class="header-spacer"></div></div>
+      <div class="panel-content auth-content">
+        <div class="eyebrow">YOUR ATMOS CLOUD</div><h1 id="authTitle">Welcome to Atmos</h1>
+        <p class="panel-intro" id="authIntro">Log in to sync saved cities, airports, beaches, and reviews across your devices.</p>
+        <section class="glass-card auth-card" id="authLoggedOut">
+          <div class="auth-tabs"><button class="active" data-auth-mode="login">Log in</button><button data-auth-mode="signup">Sign up</button></div>
+          <label class="review-field signup-only hidden">Display name<input id="authDisplayName" maxlength="30" placeholder="Your name" autocomplete="name"></label>
+          <label class="review-field">Email<input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email"></label>
+          <label class="review-field">Password<input id="authPassword" type="password" minlength="6" placeholder="At least 6 characters" autocomplete="current-password"></label>
+          <button class="review-submit" id="authSubmit">Log in</button><p class="auth-message" id="authMessage"></p>
+        </section>
+        <section class="glass-card auth-card hidden" id="authLoggedIn">
+          <div class="profile-hero"><div class="avatar large" id="profileAvatar">A</div><div><strong id="profileName">Atmos user</strong><small id="profileEmail"></small></div></div>
+          <label class="review-field">Display name<input id="profileDisplayName" maxlength="30"></label>
+          <button class="review-submit" id="saveProfile">Save profile</button>
+          <button class="secondary-auth-button" id="syncCloudNow">Sync saved places now</button>
+          <button class="secondary-auth-button danger" id="signOutButton">Log out</button>
+        </section>
+      </div>
+    </section>
+
+    <section class="full-screen-panel hidden" id="developerPasswordPanel">
+      <div class="panel-header"><button class="glass-button icon-button" id="closeDeveloperPassword">←</button><div>Developer access</div><div class="header-spacer"></div></div>
+      <div class="panel-content auth-content"><div class="eyebrow">RESTRICTED</div><h1>Weather Lab</h1><p class="panel-intro">Enter the developer password to unlock testing tools on this device.</p><section class="glass-card auth-card"><label class="review-field">Developer password<input id="developerPassword" type="password" autocomplete="off" placeholder="Password"></label><button class="review-submit" id="unlockDeveloper">Unlock Weather Lab</button><p class="auth-message" id="developerPasswordMessage"></p></section></div>
+    </section>
+
+    <section class="full-screen-panel map-panel hidden" id="mapPanel">
+      <div class="panel-header map-panel-header">
+        <button class="glass-button icon-button" id="closeMap">←</button>
+        <div>Choose on map</div>
+        <button class="glass-button icon-button" id="mapLocateButton" aria-label="Center on my location">⌖</button>
+      </div>
+      <div class="map-help">Tap a city or anywhere on the map. Capitals and major cities are highlighted.</div>
+      <div id="weatherMap" class="weather-map" aria-label="Interactive city weather map"></div>
+      <div class="map-status" id="mapStatus">Loading cities…</div>
+    </section>
+
+
+    <section class="full-screen-panel beach-community-panel hidden" id="beachCommunityPanel">
+      <div class="panel-header">
+        <button class="glass-button icon-button" id="closeBeachCommunity">←</button>
+        <div>Beach community</div>
+        <div class="header-spacer"></div>
+      </div>
+      <div class="panel-content">
+        <div class="eyebrow">LIVE BEACH REPORTS</div>
+        <h1 id="communityBeachName">Beach reports</h1>
+        <p class="panel-intro">Shared beach reports powered by the Atmos community.</p>
+
+        <section class="glass-card beach-deep-dive" id="beachDeepDive"></section>
+
+        <section class="glass-card community-summary">
+          <div class="community-overall">
+            <strong id="communityOverall">—</strong>
+            <div><div class="community-stars" id="communityStars">☆☆☆☆☆</div><small id="communityCount">No reviews yet</small></div>
+          </div>
+          <div class="community-category-grid" id="communityCategoryGrid"></div>
+        </section>
+
+        <section class="glass-card review-composer">
+          <div class="section-title">Write a beach report</div>
+          <label class="review-field">Display name<input id="reviewAuthor" maxlength="30" placeholder="Your name" /></label>
+          <div id="reviewRatingFields"></div>
+          <label class="review-field">Date visited<input id="reviewVisitDate" type="date"></label>
+          <label class="review-field">Detailed report<textarea id="reviewDescription" maxlength="1000" rows="6" placeholder="Describe the water clarity and temperature, sand, waves, crowds, parking, bathrooms, safety, family-friendliness, scenery, and anything visitors should know."></textarea></label>
+          <div class="review-photo-note">Reviews sync across devices when the Atmos backend is connected.</div>
+          <button class="review-submit" id="submitBeachReview" type="button">Post report</button>
+        </section>
+
+        <section class="community-feed" id="communityFeed"></section>
+      </div>
+    </section>
+
+    <section class="full-screen-panel hidden" id="outfitPanel">
+      <div class="panel-header">
+        <button class="glass-button icon-button" id="closeOutfit">←</button>
+        <div>What to wear</div>
+        <div class="header-spacer"></div>
+      </div>
+
+      <div class="panel-content">
+        <div class="eyebrow">HOW TO DRESS</div>
+        <h1 id="outfitHeadline">Keep it light</h1>
+        <p class="panel-intro" id="outfitExplanation"></p>
+
+        <div class="glass-card silhouette-card">
+          <div class="silhouette">
+            <div class="body-head" id="zoneHead"></div>
+            <div class="body-upper" id="zoneUpper"></div>
+            <div class="body-arms">
+              <div id="zoneHandsLeft"></div>
+              <div id="zoneHandsRight"></div>
+            </div>
+            <div class="body-legs">
+              <div id="zoneLowerLeft"></div>
+              <div id="zoneLowerRight"></div>
+            </div>
+            <div class="body-feet">
+              <div id="zoneFeetLeft"></div>
+              <div id="zoneFeetRight"></div>
+            </div>
+          </div>
+          <div class="accessory-chip hidden" id="accessoryChip">✦ Weather accessory recommended</div>
+        </div>
+
+        <div class="glass-card outfit-list" id="outfitList"></div>
+        <p class="disclaimer">General comfort guidance only. Use judgment for sports, severe weather, and long outdoor exposure.</p>
+      </div>
+    </section>
+
+    <div class="toast hidden" id="toast"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="backend.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
